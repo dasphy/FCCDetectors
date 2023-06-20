@@ -283,6 +283,36 @@ std::array<double, 2> tubeEtaExtremes(uint64_t aVolumeId) {
   return {minEta, maxEta};
 }
 
+std::array<double, 2> tubeThetaExtremes(uint64_t aVolumeId) {
+  auto sizes = tubeDimensions(aVolumeId);
+  if (sizes.mag() == 0) {
+    // if it is not a cylinder maybe it is a cone (same calculation for extremes)
+    sizes = coneDimensions(aVolumeId);
+    if (sizes.mag() == 0) {
+      return {0, 0};
+    }
+  }
+  // theta segmentation calculate maximum theta from the inner radius (no offset is taken into account)
+  double maxTheta = 0;
+  double minTheta = 0;
+  // check if it is a cylinder centred at z=0
+  dd4hep::VolumeManager volMgr = dd4hep::Detector::getInstance().volumeManager();
+  auto detelement = volMgr.lookupDetElement(aVolumeId);
+  const auto& transformMatrix = detelement.nominal().worldTransformation();
+  double outGlobal[3];
+  double inLocal[] = {0, 0, 0};  // to get middle of the volume
+  transformMatrix.LocalToMaster(inLocal, outGlobal);
+  if (outGlobal[2] < 1e-10) {
+    // this assumes cylinder centred at z=0
+    maxTheta = CLHEP::Hep3Vector(sizes.x(), 0, sizes.z()).theta();
+    minTheta = -maxTheta;
+  } else {
+    maxTheta = CLHEP::Hep3Vector(sizes.x(), 0, std::max(sizes.z() + outGlobal[2], -sizes.z() + outGlobal[2])).theta();
+    minTheta = CLHEP::Hep3Vector(sizes.y(), 0, std::min(sizes.z() + outGlobal[2], -sizes.z() + outGlobal[2])).theta();
+  }
+  return {minTheta, maxTheta};
+}
+
 std::array<double, 2> envelopeEtaExtremes (uint64_t aVolumeId) {
   dd4hep::VolumeManager volMgr = dd4hep::Detector::getInstance().volumeManager();
   auto detelement = volMgr.lookupDetElement(aVolumeId);
@@ -314,6 +344,37 @@ std::array<double, 2> envelopeEtaExtremes (uint64_t aVolumeId) {
   return {minEta, maxEta};
 }
 
+std::array<double, 2> envelopeThetaExtremes (uint64_t aVolumeId) {
+  dd4hep::VolumeManager volMgr = dd4hep::Detector::getInstance().volumeManager();
+  auto detelement = volMgr.lookupDetElement(aVolumeId);
+  const auto& transformMatrix = detelement.nominal().worldTransformation();
+  // calculate values of theta in all possible corners of the envelope
+  auto dim = envelopeDimensions(aVolumeId);
+  double minTheta = 0;
+  double maxTheta = 0;
+  for (uint i = 0; i < 8; i++) {
+    // coefficients to get all combinations of corners
+    int iX = -1 + 2 * ((i / 2) % 2);
+    int iY = -1 + 2 * (i % 2);
+    int iZ = -1 + 2 * (i / 4);
+    double outDimGlobal[3];
+    double inDimLocal[] = {iX * dim.x(), iY * dim.y(), iZ * dim.z()};
+    transformMatrix.LocalToMaster(inDimLocal, outDimGlobal);
+    double theta = CLHEP::Hep3Vector(outDimGlobal[0], outDimGlobal[1], outDimGlobal[2]).theta();
+    if (i == 0) {
+      minTheta = theta;
+      maxTheta = theta;
+    }
+    if (theta < minTheta) {
+      minTheta = theta;
+    }
+    if (theta > maxTheta) {
+      maxTheta = theta;
+    }
+  }
+  return {minTheta, maxTheta};
+}
+
 std::array<double, 2> volumeEtaExtremes(uint64_t aVolumeId) {
   // try if volume is a cylinder/disc
   auto etaExtremes = tubeEtaExtremes(aVolumeId);
@@ -321,6 +382,16 @@ std::array<double, 2> volumeEtaExtremes(uint64_t aVolumeId) {
     return etaExtremes;
   } else {
     return envelopeEtaExtremes(aVolumeId);
+  }
+}
+
+std::array<double, 2> volumeThetaExtremes(uint64_t aVolumeId) {
+  // try if volume is a cylinder/disc
+  auto thetaExtremes = tubeThetaExtremes(aVolumeId);
+  if (thetaExtremes[0] != 0 or thetaExtremes[1] != 0) {
+    return thetaExtremes;
+  } else {
+    return envelopeThetaExtremes(aVolumeId);
   }
 }
 
@@ -337,6 +408,26 @@ std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentati
   uint minEtaID = int(floor((etaExtremes[0] + 0.5 * etaCellSize - aSeg.offsetEta()) / etaCellSize));
   return {phiCellNumber, cellsEta, minEtaID};
 }
+
+//TODO
+std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::FCCSWGridPhiTheta& aSeg) {
+  uint phiCellNumber = aSeg.phiBins();
+  double thetaCellSize = aSeg.gridSizeTheta();
+  auto thetaExtremes = volumeThetaExtremes(aVolumeId);
+  uint cellsTheta = ceil(( thetaExtremes[1] - thetaExtremes[0] - thetaCellSize ) / 2 / thetaCellSize) * 2 + 1;
+  uint minThetaID = int(floor((thetaExtremes[0] + 0.5 * thetaCellSize - aSeg.offsetTheta()) / thetaCellSize));
+  return {phiCellNumber, cellsTheta, minThetaID};
+}
+
+std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::FCCSWGridPhiThetaMerged& aSeg) {
+  uint phiCellNumber = aSeg.phiBins();
+  double thetaCellSize = aSeg.gridSizeTheta();
+  auto thetaExtremes = volumeThetaExtremes(aVolumeId);
+  uint cellsTheta = ceil(( thetaExtremes[1] - thetaExtremes[0] - thetaCellSize ) / 2 / thetaCellSize) * 2 + 1;
+  uint minThetaID = int(floor((thetaExtremes[0] + 0.5 * thetaCellSize - aSeg.offsetTheta()) / thetaCellSize));
+  return {phiCellNumber, cellsTheta, minThetaID};
+}
+
 
 std::array<uint, 2> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::PolarGridRPhi& aSeg) {
   // get half-widths,

@@ -4,7 +4,7 @@
 // FCCSW
 #include "DetSegmentation/FCCSWGridPhiEta.h"
 #include "DetSegmentation/FCCSWGridPhiTheta.h"
-
+#include "DetSegmentation/FCCSWGridPhiThetaMerged.h"
 
 // DD4hep
 #include "DD4hep/DetFactoryHelper.h"
@@ -116,17 +116,24 @@ CLHEP::Hep3Vector coneDimensions(uint64_t aVolumeId);
  */
 std::array<double, 2> tubeEtaExtremes(uint64_t aVolumeId);
 
+std::array<double, 2> tubeThetaExtremes(uint64_t aVolumeId);
+
 /** Get the extrema in pseudorapidity of an envelope.
  *   @param[in] aVolumeId The volume ID.
  *   return Pseudorapidity extrema (eta_min, eta_max).
  */
 std::array<double, 2> envelopeEtaExtremes(uint64_t aVolumeId);
 
+std::array<double, 2> envelopeThetaExtremes(uint64_t aVolumeId);
+
 /** Get the extrema in pseudorapidity of a volume. First try to match tube or cone, if it fails use an envelope shape.
  *   @param[in] aVolumeId The volume ID.
  *   return Pseudorapidity extrema (eta_min, eta_max).
  */
 std::array<double, 2> volumeEtaExtremes(uint64_t aVolumeId);
+
+std::array<double, 2> volumeThetaExtremes(uint64_t aVolumeId);
+
 
 /** Get the number of cells for the volume and a given Cartesian XY segmentation.
  *   For an example see: Test/TestReconstruction/tests/options/testcellcountingXYZ.py.
@@ -146,7 +153,7 @@ std::array<uint, 2> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentati
  */
 std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::CartesianGridXYZ& aSeg);
 
-/** Get the number of cells for the volume and a given Phi-Eta segmentation.
+/** Get the number of cells for the volume and a given Phi-Eta (Phi-Theta) segmentation.
  *   It is assumed that the volume has a cylindrical shape (and full azimuthal coverage)
  *   and that it is centred at (0,0,0).
  *   For an example see: Test/TestReconstruction/tests/options/testcellcountingPhiEta.py.
@@ -156,6 +163,12 @@ std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentati
  *   return Array of the number of cells in (phi, eta) and the minimum eta ID.
  */
 std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::FCCSWGridPhiEta& aSeg);
+
+
+std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::FCCSWGridPhiTheta& aSeg);
+
+
+std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::FCCSWGridPhiThetaMerged& aSeg);
 
 /** Get the number of cells for the volume and a given R-phi segmentation.
  *   It is assumed that the volume has a cylindrical shape - TGeoTube (and full azimuthal coverage)

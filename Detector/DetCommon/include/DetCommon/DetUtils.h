@@ -4,7 +4,8 @@
 // FCCSW
 #include "DetSegmentation/FCCSWGridPhiEta.h"
 #include "DetSegmentation/FCCSWGridPhiTheta.h"
-#include "DetSegmentation/FCCSWGridPhiThetaMerged.h"
+//#include "DetSegmentation/FCCSWGridPhiThetaMerged.h"
+#include "DetSegmentation/FCCSWGridModuleThetaMerged.h"
 
 // DD4hep
 #include "DD4hep/DetFactoryHelper.h"
@@ -83,6 +84,13 @@ std::vector<uint64_t> neighbours(const dd4hep::DDSegmentation::BitFieldCoder& aD
                                  uint64_t aCellId,
                                  const std::vector<bool>& aFieldCyclic = {false, false, false, false},
                                  bool aDiagonal = true);
+//tong
+std::vector<uint64_t> neighbours_ModuleThetaMerged(const dd4hep::DDSegmentation::BitFieldCoder& aDecoder,
+                                 const std::vector<std::string>& aFieldNames,
+                                 const std::vector<std::pair<int, int>>& aFieldExtremes,
+                                 uint64_t aCellId,
+                                 const std::vector<bool>& aFieldCyclic = {false, false, false, false},
+                                 bool aDiagonal = true);
 
 /** Get minimal and maximal values that can be decoded in the fields of the bitfield.
  *   @param[in] aDecoder Handle to the bitfield decoder.
@@ -134,7 +142,6 @@ std::array<double, 2> volumeEtaExtremes(uint64_t aVolumeId);
 
 std::array<double, 2> volumeThetaExtremes(uint64_t aVolumeId);
 
-
 /** Get the number of cells for the volume and a given Cartesian XY segmentation.
  *   For an example see: Test/TestReconstruction/tests/options/testcellcountingXYZ.py.
  *   @warning No offset in segmentation is currently taken into account.
@@ -153,22 +160,23 @@ std::array<uint, 2> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentati
  */
 std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::CartesianGridXYZ& aSeg);
 
-/** Get the number of cells for the volume and a given Phi-Eta (Phi-Theta) segmentation.
+/** Get the number of cells for the volume and a given Phi-Eta / Phi-Theta / Module-Theta segmentation.
  *   It is assumed that the volume has a cylindrical shape (and full azimuthal coverage)
  *   and that it is centred at (0,0,0).
  *   For an example see: Test/TestReconstruction/tests/options/testcellcountingPhiEta.py.
  *   @warning No offset in segmentation is currently taken into account.
  *   @param[in] aVolumeId The volume for which the cells are counted.
  *   @param[in] aSeg Handle to the segmentation of the volume.
- *   return Array of the number of cells in (phi, eta) and the minimum eta ID.
+ *   return Array of the number of cells in (phi, eta) / (phi, theta) / (module, theta) and the minimum eta / theta ID.
  */
 std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::FCCSWGridPhiEta& aSeg);
 
-
 std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::FCCSWGridPhiTheta& aSeg);
 
+//std::vector<int> n_Merged_Theta={4, 8, 2, 1, 8, 4, 2, 1, 4, 2, 1, 8};
+//std::vector<int> n_Merged_Module={2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1};
 
-std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::FCCSWGridPhiThetaMerged& aSeg);
+std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::FCCSWGridModuleThetaMerged& aSeg);
 
 /** Get the number of cells for the volume and a given R-phi segmentation.
  *   It is assumed that the volume has a cylindrical shape - TGeoTube (and full azimuthal coverage)

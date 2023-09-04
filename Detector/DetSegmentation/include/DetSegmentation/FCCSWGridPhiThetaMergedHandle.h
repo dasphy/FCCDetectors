@@ -107,7 +107,7 @@ public:
 
   /** \brief Returns a std::vector<double> of the cellDimensions of the given cell ID
       in natural order of dimensions (dPhi, dTheta)
-
+ 
       Returns a std::vector of the cellDimensions of the given cell ID
       \param cellID is ignored as all cells have the same dimension
       TO BE MODIFIED!!!

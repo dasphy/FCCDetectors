@@ -85,12 +85,14 @@ std::vector<uint64_t> neighbours(const dd4hep::DDSegmentation::BitFieldCoder& aD
                                  const std::vector<bool>& aFieldCyclic = {false, false, false, false},
                                  bool aDiagonal = true);
 //tong
-std::vector<uint64_t> neighbours_ModuleThetaMerged(const dd4hep::DDSegmentation::BitFieldCoder& aDecoder,
+std::vector<uint64_t> neighbours_ModuleThetaMerged(const dd4hep::DDSegmentation::FCCSWGridModuleThetaMerged& aSeg,
+                                 const dd4hep::DDSegmentation::BitFieldCoder& aDecoder,
                                  const std::vector<std::string>& aFieldNames,
                                  const std::vector<std::pair<int, int>>& aFieldExtremes,
                                  uint64_t aCellId,
                                  const std::vector<bool>& aFieldCyclic = {false, false, false, false},
-                                 bool aDiagonal = true);
+                                 bool aDiagonal = false);
+                                 //bool aDiagonal = true);
 
 /** Get minimal and maximal values that can be decoded in the fields of the bitfield.
  *   @param[in] aDecoder Handle to the bitfield decoder.
@@ -173,10 +175,7 @@ std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentati
 
 std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::FCCSWGridPhiTheta& aSeg);
 
-//std::vector<int> n_Merged_Theta={4, 8, 2, 1, 8, 4, 2, 1, 4, 2, 1, 8};
-//std::vector<int> n_Merged_Module={2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1};
-
-std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::FCCSWGridModuleThetaMerged& aSeg);
+std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::BitFieldCoder& aDecoder, const dd4hep::DDSegmentation::FCCSWGridModuleThetaMerged& aSeg);
 
 /** Get the number of cells for the volume and a given R-phi segmentation.
  *   It is assumed that the volume has a cylindrical shape - TGeoTube (and full azimuthal coverage)

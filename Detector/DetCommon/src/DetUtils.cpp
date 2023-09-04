@@ -105,6 +105,7 @@ int cyclicNeighbour(int aCyclicId, std::pair<int, int> aFieldExtremes) {
 }
 
 ////tong: find the neighbours of cells which are merged over theta/module per layer
+//original one:
 std::vector<uint64_t> neighbours(const dd4hep::DDSegmentation::BitFieldCoder& aDecoder,
                                  const std::vector<std::string>& aFieldNames,
                                  const std::vector<std::pair<int, int>>& aFieldExtremes, uint64_t aCellId,
@@ -177,14 +178,16 @@ std::vector<uint64_t> neighbours(const dd4hep::DDSegmentation::BitFieldCoder& aD
   return neighbours;
 }
 
-std::vector<uint64_t> neighbours_ModuleThetaMerged(const dd4hep::DDSegmentation::BitFieldCoder& aDecoder,
+////tong: find the neighbours, for new module-theta merged readout
+std::vector<uint64_t> neighbours_ModuleThetaMerged(const dd4hep::DDSegmentation::FCCSWGridModuleThetaMerged& aSeg, 
+                                 const dd4hep::DDSegmentation::BitFieldCoder& aDecoder,
                                  const std::vector<std::string>& aFieldNames,
                                  const std::vector<std::pair<int, int>>& aFieldExtremes, uint64_t aCellId,
                                  const std::vector<bool>& aFieldCyclic, bool aDiagonal) {
   std::vector<uint64_t> neighbours;
   dd4hep::DDSegmentation::CellID cID = aCellId;
-  std::vector<int> n_Merged_Theta={4, 8, 2, 1, 8, 4, 2, 1, 4, 2, 1, 8};
-  std::vector<int> n_Merged_Module={2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1};
+  //std::vector<int> n_Merged_Theta={2, 4, 2, 1, 2, 1, 2, 2, 1, 1, 1, 2};
+  //std::vector<int> n_Merged_Module={2, 1, 1, 2, 2, 1, 1, 1, 2, 2, 1, 1};
   int nLayer = aDecoder.get(cID, "layer");
   for (uint itField = 0; itField < aFieldNames.size(); itField++) {
     const auto& field = aFieldNames[itField];
@@ -197,30 +200,30 @@ std::vector<uint64_t> neighbours_ModuleThetaMerged(const dd4hep::DDSegmentation:
       if (id > aFieldExtremes[itField].first) {
         aDecoder.set(cID, field, id - 1);
         // if the numbers of merged cells across 2 layers are the same we just do +-1
-        if (n_Merged_Module[nLayer] == n_Merged_Module[nLayer-1]) {
+        if (aSeg.mergedModules(nLayer) == aSeg.mergedModules(nLayer-1)) {
           neighbours.emplace_back(cID);
         // we need to shift the field id if in inner/outer layer more cells are merged
-        } else if (n_Merged_Module[nLayer] < n_Merged_Module[nLayer-1]) {
-          aDecoder.set(cID, "module", module_id - (module_id+1+n_Merged_Module[nLayer-1]) % n_Merged_Module[nLayer-1]);
+        } else if (aSeg.mergedModules(nLayer) < aSeg.mergedModules(nLayer-1)) {
+          aDecoder.set(cID, "module", module_id - module_id % aSeg.mergedModules(nLayer-1));
           neighbours.emplace_back(cID);
         // the number of neighbours would be more than 1 if in inner/outer layer less cells are merged
-        } else if (n_Merged_Module[nLayer] > n_Merged_Module[nLayer-1]) {
+        } else if (aSeg.mergedModules(nLayer) > aSeg.mergedModules(nLayer-1)) {
           neighbours.emplace_back(cID);
-          for (int i=1; i <= n_Merged_Module[nLayer]-n_Merged_Module[nLayer-1]; i++) {
-            aDecoder.set(cID, "module", module_id + i);
+          for (int i=1; i <= (aSeg.mergedModules(nLayer)-aSeg.mergedModules(nLayer-1))/aSeg.mergedModules(nLayer-1); i++) {
+            aDecoder.set(cID, "module", module_id + i*aSeg.mergedModules(nLayer-1));
             neighbours.emplace_back(cID);
           }
         }
         // do the same for theta
-        if (n_Merged_Theta[nLayer] == n_Merged_Theta[nLayer-1]) {
+        if (aSeg.mergedThetaCells(nLayer) == aSeg.mergedThetaCells(nLayer-1)) {
           neighbours.emplace_back(cID);
-        } else if (n_Merged_Theta[nLayer] < n_Merged_Theta[nLayer-1]) {
-          aDecoder.set(cID, "theta", theta_id - (theta_id+1+n_Merged_Theta[nLayer-1]) % n_Merged_Theta[nLayer-1]);
+        } else if (aSeg.mergedThetaCells(nLayer) < aSeg.mergedThetaCells(nLayer-1)) {
+          aDecoder.set(cID, "theta", theta_id - theta_id % aSeg.mergedThetaCells(nLayer-1));
           neighbours.emplace_back(cID);
-        } else if (n_Merged_Theta[nLayer] > n_Merged_Theta[nLayer-1]) {
+        } else if (aSeg.mergedThetaCells(nLayer) > aSeg.mergedThetaCells(nLayer-1)) {
           neighbours.emplace_back(cID);
-          for (int i=1; i <= n_Merged_Theta[nLayer]-n_Merged_Theta[nLayer-1]; i++) {
-            aDecoder.set(cID, "theta", theta_id + i);
+          for (int i=1; i <= (aSeg.mergedThetaCells(nLayer)-aSeg.mergedThetaCells(nLayer-1))/aSeg.mergedThetaCells(nLayer-1); i++) {
+            aDecoder.set(cID, "theta", theta_id + i*aSeg.mergedThetaCells(nLayer-1));
             neighbours.emplace_back(cID);
           }
         }
@@ -228,50 +231,55 @@ std::vector<uint64_t> neighbours_ModuleThetaMerged(const dd4hep::DDSegmentation:
       // for outer layer
       if (id < aFieldExtremes[itField].second) {
         aDecoder.set(cID, field, id + 1);
-        if (n_Merged_Module[nLayer] == n_Merged_Module[nLayer+1]) {
+        if (aSeg.mergedModules(nLayer) == aSeg.mergedModules(nLayer+1)) {
           neighbours.emplace_back(cID);
-        } else if (n_Merged_Module[nLayer] < n_Merged_Module[nLayer+1]) {
-          aDecoder.set(cID, "module", module_id - (module_id+1+n_Merged_Module[nLayer+1]) % n_Merged_Module[nLayer+1]);
+        } else if (aSeg.mergedModules(nLayer) < aSeg.mergedModules(nLayer+1)) {
+          aDecoder.set(cID, "module", module_id - module_id % aSeg.mergedModules(nLayer+1));
           neighbours.emplace_back(cID);
-        } else if (n_Merged_Module[nLayer] > n_Merged_Module[nLayer+1]) {
+        } else if (aSeg.mergedModules(nLayer) > aSeg.mergedModules(nLayer+1)) {
           neighbours.emplace_back(cID);
-          for (int i=1; i <= n_Merged_Module[nLayer]-n_Merged_Module[nLayer+1]; i++) {
-            aDecoder.set(cID, "module", module_id + i);
+          for (int i=1; i <= (aSeg.mergedModules(nLayer)-aSeg.mergedModules(nLayer+1))/aSeg.mergedModules(nLayer+1); i++) {
+            aDecoder.set(cID, "module", module_id + i*aSeg.mergedModules(nLayer+1));
             neighbours.emplace_back(cID);
           }
         }
-        if (n_Merged_Theta[nLayer] == n_Merged_Theta[nLayer+1]) {
+        if (aSeg.mergedThetaCells(nLayer) == aSeg.mergedThetaCells(nLayer+1)) {
           neighbours.emplace_back(cID);
-        } else if (n_Merged_Theta[nLayer] < n_Merged_Theta[nLayer+1]) {
-          aDecoder.set(cID, "theta", theta_id - (theta_id+1+n_Merged_Theta[nLayer+1]) % n_Merged_Theta[nLayer+1]);
+        } else if (aSeg.mergedThetaCells(nLayer) < aSeg.mergedThetaCells(nLayer+1)) {
+          aDecoder.set(cID, "theta", theta_id - theta_id % aSeg.mergedThetaCells(nLayer+1));
           neighbours.emplace_back(cID);
-        } else if (n_Merged_Theta[nLayer] > n_Merged_Theta[nLayer+1]) {
+        } else if (aSeg.mergedThetaCells(nLayer) > aSeg.mergedThetaCells(nLayer+1)) {
           neighbours.emplace_back(cID);
-          for (int i=1; i <= n_Merged_Theta[nLayer]-n_Merged_Theta[nLayer+1]; i++) {
-            aDecoder.set(cID, "theta", theta_id + i);
+          for (int i=1; i <= (aSeg.mergedThetaCells(nLayer)-aSeg.mergedThetaCells(nLayer+1))/aSeg.mergedThetaCells(nLayer+1); i++) {
+            aDecoder.set(cID, "theta", theta_id + i*aSeg.mergedThetaCells(nLayer+1));
             neighbours.emplace_back(cID);
           }
         }
       }
+      aDecoder.set(cID, field, id);
     }
     // for neighbours in module/theta direction, do +-nMergedCells[] instead of +-1
     if (aFieldNames[itField] == "module") {
-      aDecoder[field].set(cID, cyclicNeighbour(id - n_Merged_Module[nLayer], aFieldExtremes[itField]));
+      aDecoder[field].set(cID, cyclicNeighbour(id - aSeg.mergedModules(nLayer), aFieldExtremes[itField]));
       neighbours.emplace_back(cID);
-      aDecoder[field].set(cID, cyclicNeighbour(id + n_Merged_Module[nLayer], aFieldExtremes[itField]));
+      aDecoder[field].set(cID, cyclicNeighbour(id + aSeg.mergedModules(nLayer), aFieldExtremes[itField]));
       neighbours.emplace_back(cID);
+      aDecoder.set(cID, field, id);
     }
     if (aFieldNames[itField] == "theta") {
       if (id > aFieldExtremes[itField].first) {
-        aDecoder.set(cID, field, id - n_Merged_Theta[nLayer]);
+        //aDecoder.set(cID, field, id - 1);
+        aDecoder.set(cID, field, id - aSeg.mergedThetaCells(nLayer));
         neighbours.emplace_back(cID);
       }
       if (id < aFieldExtremes[itField].second) {
-        aDecoder.set(cID, field, id + n_Merged_Theta[nLayer]);
+        //aDecoder.set(cID, field, id + 1);
+        aDecoder.set(cID, field, id + aSeg.mergedThetaCells(nLayer));
         neighbours.emplace_back(cID);
       }
+      aDecoder.set(cID, field, id);
     }
-    aDecoder.set(cID, field, id);
+    //aDecoder.set(cID, field, id);
   }
   // do Diagonal case later
   if (aDiagonal) {
@@ -568,13 +576,12 @@ std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentati
 
 ////tong
 std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::BitFieldCoder& aDecoder, const dd4hep::DDSegmentation::FCCSWGridModuleThetaMerged& aSeg) {
-  std::vector<int> n_Merged_Theta={4, 8, 2, 1, 8, 4, 2, 1, 4, 2, 1, 8};
-  std::vector<int> n_Merged_Module={2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1};
-  // to implement m_layerID
+  //std::vector<int> n_Merged_Theta={2, 4, 2, 1, 2, 1, 2, 2, 1, 1, 1, 2};
+  //std::vector<int> n_Merged_Module={2, 1, 1, 2, 2, 1, 1, 1, 2, 2, 1, 1};
   int nLayer = aDecoder.get(aVolumeId, "layer");
-  uint moduleCellNumber = ceil(aSeg.nModules() / n_Merged_Module[nLayer]);
+  uint moduleCellNumber = ceil(aSeg.nModules() / aSeg.mergedModules(nLayer));
   //uint phiCellNumber = aSeg.phiBins();
-  double thetaCellSize = aSeg.gridSizeTheta() * n_Merged_Theta[nLayer];
+  double thetaCellSize = aSeg.gridSizeTheta() * aSeg.mergedThetaCells(nLayer);
   auto thetaExtremes = volumeThetaExtremes(aVolumeId);
   uint cellsTheta = ceil(( thetaExtremes[1] - thetaExtremes[0] - thetaCellSize ) / 2 / thetaCellSize) * 2 + 1;
   uint minThetaID = int(floor((thetaExtremes[0] + 0.5 * thetaCellSize - aSeg.offsetTheta()) / thetaCellSize));

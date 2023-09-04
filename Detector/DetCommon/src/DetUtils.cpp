@@ -186,8 +186,6 @@ std::vector<uint64_t> neighbours_ModuleThetaMerged(const dd4hep::DDSegmentation:
                                  const std::vector<bool>& aFieldCyclic, bool aDiagonal) {
   std::vector<uint64_t> neighbours;
   dd4hep::DDSegmentation::CellID cID = aCellId;
-  //std::vector<int> n_Merged_Theta={2, 4, 2, 1, 2, 1, 2, 2, 1, 1, 1, 2};
-  //std::vector<int> n_Merged_Module={2, 1, 1, 2, 2, 1, 1, 1, 2, 2, 1, 1};
   int nLayer = aDecoder.get(cID, "layer");
   for (uint itField = 0; itField < aFieldNames.size(); itField++) {
     const auto& field = aFieldNames[itField];
@@ -576,8 +574,6 @@ std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentati
 
 ////tong
 std::array<uint, 3> numberOfCells(uint64_t aVolumeId, const dd4hep::DDSegmentation::BitFieldCoder& aDecoder, const dd4hep::DDSegmentation::FCCSWGridModuleThetaMerged& aSeg) {
-  //std::vector<int> n_Merged_Theta={2, 4, 2, 1, 2, 1, 2, 2, 1, 1, 1, 2};
-  //std::vector<int> n_Merged_Module={2, 1, 1, 2, 2, 1, 1, 1, 2, 2, 1, 1};
   int nLayer = aDecoder.get(aVolumeId, "layer");
   uint moduleCellNumber = ceil(aSeg.nModules() / aSeg.mergedModules(nLayer));
   //uint phiCellNumber = aSeg.phiBins();
